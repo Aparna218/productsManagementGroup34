@@ -1,42 +1,54 @@
 const mongoose = require('mongoose')
 
-// { 
-//     fname: {string, mandatory},
-//     lname: {string, mandatory},
-//     email: {string, mandatory, valid email, unique},
-//     profileImage: {string, mandatory}, // s3 link
-//     phone: {string, mandatory, unique, valid Indian mobile number}, 
-//     password: {string, mandatory, minLen 8, maxLen 15}, // encrypted password
-//     address: {
-//       shipping: {
-//         street: {string, mandatory},
-//         city: {string, mandatory},
-//         pincode: {number, mandatory}
-//       },
-//       billing: {
-//         street: {string, mandatory},
-//         city: {string, mandatory},
-//         pincode: {number, mandatory}
-//       }
-//     },
-//     createdAt: {timestamp},
-//     updatedAt: {timestamp}
-//   }
+
 const userSchema = new mongoose.userSchema({
-    fname:{
+    fname: {
         type: String,
-        require: true,
-        trim : true
+        required: true,
+        trim: true
     },
-    lname:{
+    lname: {
         type: String,
-        require: true,
-        trim : true
+        required: true,
+        trim: true
     },
-    email:{
+    email: {
         type: String,
-        require: true,
-        unique : true,
-        trim : true
+        required: true,
+        unique: true,
+        trim: true
     },
-})
+    profileImage: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    phone: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true
+    },
+    password: {
+        type: String,
+        required: true,
+        minLen: 8,
+        maxLen: 15,
+        trim: true
+    },
+    address: {
+        shipping: {
+            street: { type: String, required: true, trim: true },
+            city: { type: String, required: true, trim: true },
+            pincode: { type: Number, required: true, trim: true }
+        },
+
+        billing: {
+            street: { type: String, required: true, trim: true },
+            city: { type: String, required: true, trim: true },
+            pincode: { type: Number, required: true, trim: true }
+        },
+    }
+}, {timestamps: true})
+module.exports = mongoose.model('User', userSchema)
+
