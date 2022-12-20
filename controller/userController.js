@@ -3,14 +3,15 @@ const aws = require('../aws/aws')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const validator = require('../util/validator')
+const validator = require('../util/validator');
+const { isValidObjectId } = require('mongoose');
 const {isvalidName,isValidEmail,isvalidpassword,isvalidimage,isvalidphone,isvalidPinCode} = validator
 
 //Register api
-const createuser = async function(req,res){
+exports.createuser = async function(req,res){
     try {
         const data = req.body
-        let files = req.files
+        
 
         let {fname,lname,email,profileImage,phone,password,address}=data
 
@@ -19,7 +20,7 @@ const createuser = async function(req,res){
         if(!fname)return res.status(400).send({status:false, message:"fname is mandatory"})
         if(!lname)return res.status(400).send({status:false, message:"lname is mandatory"})
         if(!email)return res.status(400).send({status:false, message:"email is mandatory"})
-        if(!profileImage)return res.status(400).send({status:false, message:"profileImage is mandatory"})
+        //if(!profileImage)return res.status(400).send({status:false, message:"profileImage is mandatory"})
         if(!phone)return res.status(400).send({status:false, message:"phone is mandatory"})
         if(!password)return res.status(400).send({status:false, message:"password is mandatory"})
         
@@ -30,9 +31,8 @@ const createuser = async function(req,res){
         if(!isvalidphone(phone))return res.status(400).send({status:false, message:"Please provide valid phone"})
         if(!isvalidpassword(password))return res.status(400).send({status:false, message:"Please provide valid password"})
         
-        //data.address = JSON.parse(address);
-       //let {shipping, billing}= data.address;
-       data.address=address
+        data.address = JSON.parse(address);
+        data.address=address
        
         if(!address.shipping.street)return res.status(400).send({status:false, message:"Shipping street address is required"})
         if(!isvalidName(address.shipping.street))return res.status(400).send({status:false, message:"Please provide valid shipping.street"});
@@ -49,17 +49,21 @@ const createuser = async function(req,res){
         if(!isvalidPinCode(address.billing.pincode))return res.status(400).send({status:false, message:"Please provide valid billing.pincode"});
         
         //checking emial and phone exists
-        const userEmail = await userModle.findOne({email})
-        if(userEmail == email) return res.status(400).send({status:false, message:"This emails is already exist"})
+        const userEmail = await userModel.findOne({email})
+        if(userEmail.email == email) return res.status(400).send({status:false, message:"This emails is already exist"})
         const userPhone= await userModel.findOne({phone})
-        if(userPhone == phone) return res.status(400).send({status:false, message:"This mobile number is already exist"})
+        if(userPhone.phone == phone) return res.status(400).send({status:false, message:"This mobile number is already exist"})
 
         //bcryption of password
         data.password = await bcrypt.hash(password,saltRounds)
 
         //creating profileImage Url
+        let files = req.files
         if (files && files.length > 0) {
-            data.profileImage = await uploadFile(files[0])}
+            
+              let  uploadedFileURL = await aws.uploadFile(files[0])
+                data.profileImage = uploadedFileURL}
+            
         else {
             return res.status(400).send({ status: false, message: "Please upload profile image for registration" })
         }
@@ -74,7 +78,7 @@ const createuser = async function(req,res){
 }
 
 // Login api
-const loginuser = async function(req,res){
+exports.loginuser = async function(req,res){
     try {
         const data = req.body;
         let {email, password} = data;
@@ -83,7 +87,7 @@ const loginuser = async function(req,res){
         if(!password)return res.status(400).send({ status: false, message: "password is required." })
 
         if(!isValidEmail(email))return res.status(400).send({ status: false, message: "Please provide valid Email." })
-        if(!isValidPassword(password))return res.status(400).send({ status: false, message: "Please provid valid Password." })
+       
         
         let user = await userModel.findOne({ email: email, password: password });
         let checkPassword = await bcrypt.compare(password, user.password)
@@ -106,5 +110,72 @@ const loginuser = async function(req,res){
     }
 }
 
-module.exports.createuser= createuser;
-module.exports.loginuser= loginuser
+//Get users
+exports.getUser = async function(req,res){
+    try {
+        const userId = req.params.userId
+       
+        if(! userId)return res.status(400).send({ status: false, message: "userId is required." })
+        if(!isValidObjectId(userId))return res.status(400).send({ status: false, message: "Provide valid userId." })
+         
+        const getUser = await userModel.findById({_id: userId})
+        if(!getUser)return res.status(400).send({ status: false, message: "User not found by this UserId" })
+
+        return res.status(200).send({ status: true, message: "User found" , data:getUser})
+    } catch (error) {
+        return res.status(500).send({status : false, message: error.message})
+    }
+}
+
+//Update users
+exports.updateUser = async function(req,res){
+    try {
+        let data = req.body
+        const userId = req.params.userId
+        const updationfileds = {}
+
+        if(! userId)return res.status(400).send({ status: false, message: "userId is required." })
+        if(!isValidObjectId(userId))return res.status(400).send({ status: false, message: "Provide valid userId." })
+       let {fname,lname,email,phone,password, address} = data
+
+       if(Object.keys(data).length=0)return res.status(400).send({status:false, message:"provid at least one field"})
+       
+       if(fname){
+        if(!isvalidName(fname))return res.status(400).send({status:false, message:"provide valid fname"})
+        updationfileds.fname=fname
+       }
+
+       if(lname){
+        if(!isvalidName(lname))return res.status(400).send({status:false, message:"provide valid lname"})
+        updationfileds.lname=lname
+       }
+
+       if(email){
+        if(!isValidEmail(email))return res.status(400).send({status:false, message:"provide valid email"})
+        updationfileds.email=email
+       }
+
+       if(phone){
+        if(!isvalidphone(phone))return res.status(400).send({status:false, message:"provide valid phone"})
+        updationfileds.phone=phone
+       }
+
+       if(password){
+        if(!isvalidphone(password))return res.status(400).send({status:false, message:"provide valid password"})
+        updationfileds.password=password
+       }
+       
+
+
+       
+
+       
+
+        const updateUser = await userModel.findOneAndUpdate({_id:userId},{$set:updationfileds},{new:true})
+        if(!updateUser)return res.status(200).send({ status: true, message: "User not found by this userId"})
+        return res.status(200).send({ status: true, message: "User updated sucessfully" , data:updateUser})
+    } catch (error) {
+        return res.status(500).send({status : false, message: error.message})
+    }
+}
+
