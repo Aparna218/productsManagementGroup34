@@ -1,38 +1,50 @@
 const mongoose= require('mongoose')
-//name
-const isvalidName = (name) =>{
-    const nameRegex = 
-    /^[a-zA-Z]+$/
-    return nameRegex.test(name)
-} 
-//email
-const isValidEmail = (email) =>{
-    const emailRegex = 
-    /^[a-z0-9][a-z0-9-_\.]+@([a-z]|[a-z0-9]?[a-z0-9-]+[a-z0-9])\.[a-z0-9]{2,10}(?:\.[a-z]{2,10})?$/
-    return emailRegex.test(email)
+
+//isValidName
+const isValidName = (name) => {
+    if ((typeof name == 'string' && name.trim().length != 0 && name.match(/^[A-Z a-z]{2,}$/)))
+        return true
+    return false
+};
+
+//isValidEmail
+const isValidEmail = (email) => {
+    const regex =  /^[a-z0-9][a-z0-9-_\.]+@([a-z]|[a-z0-9]?[a-z0-9-]+[a-z0-9])\.[a-z0-9]{2,10}(?:\.[a-z]{2,10})?$/.test(email)
+    return regex
+};
+
+//isValidFile
+const isValidFile = (img) => {
+    const regex = /(\/*\.(?:png|gif|webp|jpeg|jpg))/.test(img)
+    return regex
 }
-//password
-const isvalidpassword = (password) =>{
-    const passwordRegex = 
-    /^[a-zA-Z0-9!@#$%^&*]{8,15}$/
-    return passwordRegex.test(password)
-} 
-//profileimageUrl 
-const isvalidimage = (image) =>{
-    const Regex = 
-    /^(ftp|https?):\/\/+(www\.)?[a-z0-9\-\.]{3,}\.[a-z]{3}$/
-    return Regex.test(image)
-} 
-//phone
-const isvalidphone = (phone) =>{
-    const phoneRegex = 
-    /^(\+91[\-\s]?)?[0]?(91)?[789]\d{9}$/
-    return phoneRegex.test(phone)
-} 
-//pincode
-const isvalidPinCode = (pincode) =>{
-    const pincodeRegex = 
-    /^[1-9][0-9]{5}$/
-    return pincodeRegex.test(pincode)
-} 
-module.exports = {isvalidName,isValidEmail,isvalidpassword,isvalidimage,isvalidphone,isvalidPinCode}
+//isValidPwd
+const isValidPass = (pass) => {
+    const regex = /^[a-zA-Z0-9!@#$%^&*]{8,15}$/.test(pass)
+    return regex
+};
+
+//isValidNumber
+const isValidNumber = (ph) => {
+    let regex = /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(ph)
+    return regex
+};
+
+//isValidAddress
+const isValidAddress = (txt) => {
+    const regex = /^(?=.*[A-Za-z,.-?%!&]+)[A-Za-z,.-?%!&\s0-9]{2,}$/.test(txt)
+    return regex
+}
+
+//isValidNumber
+const isValidPin = (pin) => {
+    let regex = /^[1-9]{1}[0-9]{5}$/.test(pin)
+    return regex
+};
+
+//objectId
+const isValidObjectId = (objId) => {
+    return mongoose.Types.ObjectId.isValid(objId)
+};
+
+module.exports = { isValidName, isValidEmail, isValidFile, isValidNumber, isValidPass, isValidAddress, isValidPin, isValidObjectId };

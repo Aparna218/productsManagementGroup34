@@ -6,12 +6,15 @@ const userModel = require('../model/userModel')
 exports.authenticaion = async function(req,res,next){
     try {
 
-        const token = req.headers["authorization"]
+        let token = req.headers["authorization"]
+        //token = token.split(" ")   
+        
+        
 
         if (!token)return res.status(400).send({ status: false, message: "Token is required." })
-        token = token.split(" ")
+       // token = token.split(" ")
     
-        const decodedToken = jwt.verify(token, 'group42-very-very-secret-key', function (err, decodedToken) {
+        let decodedToken = jwt.verify(Token, 'group42-very-very-secret-key', function (err, decodedToken) {
             if (err)return res.status(401).send({ status: false, message: err.message })
             else req.token = decodedToken
              next()
