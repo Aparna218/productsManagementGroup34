@@ -7,12 +7,9 @@ exports.authenticaion = async function(req,res,next){
     try {
 
         let token = req.headers["authorization"]
-        //token = token.split(" ")   
-        
-        
-
+         
         if (!token)return res.status(400).send({ status: false, message: "Token is required." })
-       // token = token.split(" ")
+         token = token.split(" ")
     
         let decodedToken = jwt.verify(Token, 'group42-very-very-secret-key', function (err, decodedToken) {
             if (err)return res.status(401).send({ status: false, message: err.message })

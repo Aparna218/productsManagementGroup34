@@ -9,7 +9,7 @@ router.post('/register',createUser )
 //Login
 router.post('/login',loginuser)
 //Get Users
-router.get('/user/:userId',mw.authenticaion,getUser)
+router.get('/user/:userId',getUser)
 //Update Users
 router.put('/user/:userId',updateUser)
 
