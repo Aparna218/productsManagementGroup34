@@ -2,6 +2,8 @@ const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 const userModel = require('../model/userModel')
 
+const {isValidObjectId}=require('../util/validator')
+
 //Authenticaion.........................................................................................................
 exports.authenticaion = async function(req,res,next){
     try {
@@ -12,10 +14,12 @@ exports.authenticaion = async function(req,res,next){
         const bearer = bearerheader.split(" ")
         const bearerToken = bearer[1]
         
-        let decodedToken = jwt.verify(bearerToken, "group34-secret-key"
+        let  decodedToken = jwt.verify(bearerToken, "group34-secret-key"
+        
         , function (err, decodedToken) {
             if (err)return res.status(401).send({ status: false, message: err.message })
             else req.token = decodedToken
+            console.log(decodedToken)
              next()
         })
     }
@@ -26,13 +30,15 @@ exports.authenticaion = async function(req,res,next){
 //Authorizaion......................................................................................................
 exports.authorization = async function(req,res,next){
     try {
+        const userlog = req.token
+        console.log(req.token)
         const userId = req.params.userId
         if(!userId)return res.status(400).send({status:false,message:"provide userId"})
-        if(mongoose.isValidObjectId(userId))return res.status(400).send({status:false,message:"provide valid userId"})
+        if(!isValidObjectId(userId))return res.status(400).send({status:false,message:"provide valid userId"})
          
-        const userData = await userModel.findById({userId})
+        const userData = await userModel.findById(userId)
          if(!userData)return res.status(400).send({status:false,message:"User not found by this userId"})
-         if (userData['_id'].toString() !== req.token.userId)return res.status(403).send({ status: false, message: "Unauthorized User Access!" })
+         if (userId!== userlog.userId)return res.status(403).send({ status: false, message: "Unauthorized User Access!" })
         next()
 
     } catch (error) {

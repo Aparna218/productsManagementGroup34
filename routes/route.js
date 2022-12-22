@@ -9,9 +9,9 @@ router.post('/register',createUser )
 //Login
 router.post('/login',loginuser)
 //Get Users
-router.get('/user/:userId',getUser)
+router.get('/user/:userId',mw.authenticaion,getUser)
 //Update Users
-router.put('/user/:userId',updateUser)
+router.put('/user/:userId',mw.authenticaion,mw.authorization,updateUser)
 
 
  module.exports= router
