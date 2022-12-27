@@ -4,45 +4,41 @@ const userModel = require('../model/userModel')
 
 const {isValidObjectId}=require('../util/validator')
 
-//Authenticaion.........................................................................................................
-exports.authenticaion = async function(req,res,next){
+
+
+//authorization
+const authentication = async (req, res, next) => {
     try {
-
-        const bearerheader = req.headers["authorization"]
-        if (!bearerheader)return res.status(400).send({ status: false, message: "Token is required." })
-
-        const bearer = bearerheader.split(" ")
-        const bearerToken = bearer[1]
-        
-        let  decodedToken = jwt.verify(bearerToken, "group34-secret-key"
-        
-        , function (err, decodedToken) {
-            if (err)return res.status(401).send({ status: false, message: err.message })
-            else req.token = decodedToken
-            console.log(decodedToken)
-             next()
+        let token = req.headers.authorization
+        if (!token) return res.status(400).send({ status: false, message: `Please provide token.` })
+        token = req.headers.authorization.slice(7);
+        console.log(token)
+       await jwt.verify(token, 'group34', (err, decoded) => {
+            if (err) return res.status(401).send({ status: false, message: `Authentication Failed!`, error: err.message })
+            req['user'] = decoded.userId
+            next()
         })
     }
-
-    catch (err) {return res.status(500).send({ status: false, message: err.message })}
-}
-
-//Authorizaion......................................................................................................
-exports.authorization = async function(req,res,next){
-    try {
-        const userlog = req.token
-        console.log(req.token)
-        const userId = req.params.userId
-        if(!userId)return res.status(400).send({status:false,message:"provide userId"})
-        if(!isValidObjectId(userId))return res.status(400).send({status:false,message:"provide valid userId"})
-         
-        const userData = await userModel.findById(userId)
-         if(!userData)return res.status(400).send({status:false,message:"User not found by this userId"})
-         if (userId!== userlog.userId)return res.status(403).send({ status: false, message: "Unauthorized User Access!" })
-        next()
-
-    } catch (error) {
-        return res.status(500).send({status:false, message:error.message})
+    catch (err) {
+        console.log(err)
+        res.status(500).send({ status: false, error: err.message })
     }
-}
+};
 
+//authorization
+const authorization = async (req, res, next) => {
+    try {
+        const userId = req.params.userId
+        if (!userId) return res.status(400).send({ status: false, message: `userId is required.` });
+        if (!isValidObjectId(userId)) return res.status(400).send({ status: false, message: ` '${userId}' this userId isn't valid.` })
+
+        if (req.user != userId)
+            return res.status(403).send({ status: false, message: ` '${userId}'You are unauthorized.` });
+        next()
+    }
+    catch (err) {
+        res.status(500).send({ status: false, error: err.message });
+    }
+};
+
+module.exports = { authentication, authorization };

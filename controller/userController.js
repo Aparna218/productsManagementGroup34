@@ -13,7 +13,7 @@ exports.createUser = async (req, res) => {
         const file = req.files;
         const { fname, lname, email, phone, password, address } = reqBody;
 
-        if (file === undefined || !file.length || Object.keys(reqBody).length === 0) return res.status(400).send({ status: false, message: `Please provide user details` })
+        if (file === undefined || !file.length || Object.keys(reqBody).length === 0) return res.status(400).send({ status: false, message: `Please provide Profile Image for user registration` })
 
         if (!isValidFile(file[0].originalname)) return res.status(400).send({ status: false, message: `Enter formate jpeg/jpg/png only.` })
 
@@ -92,38 +92,38 @@ exports.createUser = async (req, res) => {
 };
 
 
-// Login api
-exports.loginuser = async function (req, res) {
+//login
+exports.login = async (req, res) => {
     try {
-        const data = req.body;
-        let { email, password } = data;
+        const reqBody = req.body;
+        const { email, password } = reqBody;
+        if (Object.keys(reqBody).length === 0) return res.status(400).send({ status: false, message: `Please fill the data.` })
 
-        if (!email) return res.status(400).send({ status: false, message: "email is required." })
-        if (!password) return res.status(400).send({ status: false, message: "password is required." })
+        if (!email) return res.status(400).send({ status: false, message: `email is required.` });
+        if (!password) return res.status(400).send({ status: false, message: `Password is required.` });
 
-        if (!isValidEmail(email)) return res.status(400).send({ status: false, message: "Please provide valid Email." })
+        if (!isValidEmail(email)) return res.status(400).send({ status: false, message: ` '${email}' this email is not valid.` });
+        if (!isValidPass(password)) return res.status(400).send({ status: false, message: `Password should be 8-15 char & use 0-9,A-Z,a-z & special char this combination.` });
 
+        //existUser
+        const existUser = await userModel.findOne({ email });
+        if (!existUser) return res.status(404).send({ status: false, message: 'Please register first.' });
 
-        let user = await userModel.findOne({ email: email, password: password });
-        let checkPassword = await bcrypt.compare(password, user.password)
+        // decoding hash password
+        const matchPass = await bcrypt.compare(password, existUser.password);
+        if (!matchPass) return res.status(401).send({ status: false, message: 'Password is wrong.' })
 
+        // token generation
+        const payload = { userId: existUser._id, iat: Math.floor(Date.now() / 1000) };
+        const token = jwt.sign(payload, 'group34', { expiresIn: '365d' });
 
-        if (!user) return res.status(400).send({ status: false, msg: "email or password is not corerct" });
-
-        let token = jwt.sign(
-            { userId: user._id.toString() },
-            "group34-secret-key",
-            { expiresIn: '5h' }
-        );
-        let userdetails = { userId: user['_id'], token: token }
-
-        console.log(token)
-        return res.status(200).send({ message: "User login successfull", data: userdetails })
-
-    } catch (error) {
-        return res.status(500).send({ status: false, message: error.message })
+        return res.status(200).send({ status: true, message: 'Login Successful.', data: { userId: existUser._id, token: token } });
     }
-}
+    catch (err) {
+        console.log(err)
+        return res.status(500).send({ status: false, error: err.message });
+    }
+};
 
 //Get users
 exports.getUser = async function (req, res) {
@@ -131,10 +131,10 @@ exports.getUser = async function (req, res) {
         const userId = req.params.userId
 
         if (!userId) return res.status(400).send({ status: false, message: "userId is required." })
-        if (!isValidObjectId(userId)) return res.status(400).send({ status: false, message: "Provide valid userId." })
+        if (!isValidObjectId(userId)) return res.status(400).send({ status: false, message: "` '${userId}' this is invalid userId.`" })
 
         const getUser = await userModel.findById({ _id: userId })
-        if (!getUser) return res.status(400).send({ status: false, message: "User not found by this UserId" })
+        if (!getUser) return res.status(400).send({ status: false, message: "Invalid UserId" })
 
         return res.status(200).send({ status: true, message: "User found", data: getUser })
     } catch (error) {
@@ -148,83 +148,85 @@ exports.updateUser = async function (req, res) {
         let data = req.body
         let files=req.files
         const userId = req.params.userId
-        const updationfileds = {}
+        const obj = {}
 
         if (!userId) return res.status(400).send({ status: false, message: "userId is required." })
         if (!isValidObjectId(userId)) return res.status(400).send({ status: false, message: "Provide valid userId." })
-        let { fname, lname, email, phone, password, address } = data
+        let { fname, lname, email,profileImage, phone, password, address } = data
 
         if (Object.keys(data).length = 0) return res.status(400).send({ status: false, message: "provid at least one field" })
 
         if (fname) {
             if (!isValidName(fname)) return res.status(400).send({ status: false, message: "provide valid fname" })
-            updationfileds.fname = fname
+            obj.fname = fname
         }
 
         if (lname) {
             if (!isValidName(lname)) return res.status(400).send({ status: false, message: "provide valid lname" })
-            updationfileds.lname = lname
+            obj.lname = lname
         }
 
         if (email) {
             if (!isValidEmail(email)) return res.status(400).send({ status: false, message: "provide valid email" })
-            updationfileds.email = email
+            obj.email = email
         }
 
         if (phone) {
             if (!isValidNumber(phone)) return res.status(400).send({ status: false, message: "provide valid phone" })
-            updationfileds.phone = phone
+            obj.phone = phone
         }
 
         if (password) {
             if (!isValidPass(password)) return res.status(400).send({ status: false, message: "provide valid password" })
-            updationfileds.password = password
+            pass = await bcrypt.hash(password, 10);
+            obj.password = pass
         }
         //image updation......
-        if(files){
+        if(profileImage){
             let uploadedURL = await aws.uploadFile(files[0])
-            updationfileds.profileImage = uploadedURL
+            obj.profileImage = uploadedURL
         }
 
        //address updation..........
-        try {
-            data.address = JSON.parse(address);
-        
-        }
-        catch (err) {
-            if (err) return res.status(400).send({ status: false, message: `Please write address properly.` });
-        }
-        const {shipping,billing}=data.address
+       
         if(address){
+            try {
+                data.address = JSON.parse(address);
+            
+            }
+            catch (err) {
+                if (err) return res.status(400).send({ status: false, message: `Please write address properly.` });
+            }
+            const {shipping,billing}=data.address
             if(shipping.street){
-                if(!isValidName(shipping.street))return res.status(400).send({ status: false, message: "provide valid shipping Street" })
-                updationfileds["address.shipping.street"] = shipping.street
+                if(!isValidAddress(shipping.street))return res.status(400).send({ status: false, message: "provide valid shipping Street" })
+                obj["obj.shipping.street"] = shipping.street
             }
             if(shipping.city){
-                if(!isValidName(shipping.city))return res.status(400).send({ status: false, message: "provide valid shipping city" })
-                updationfileds["address.shipping.city"] = shipping.city
+                if(!isValidAddress(shipping.city))return res.status(400).send({ status: false, message: "provide valid shipping city" })
+                obj["obj.shipping.city"] = shipping.city
             }
             if(shipping.pincode){
                 if(!isValidPin(shipping.pincode))return res.status(400).send({ status: false, message: "provide valid shipping pincode" })
-                updationfileds["address.shipping.pincode"] = shipping.pincode
+                obj["obj.shipping.pincode"] = shipping.pincode
             }
 
             if(billing.street){
-                if(!isValidName(billing.street))return res.status(400).send({ status: false, message: "provide valid billing Street" })
-                updationfileds["address.billing.street"] = billing.street
+                if(!isValidAddress(billing.street))return res.status(400).send({ status: false, message: "provide valid billing Street" })
+                obj["obj.billing.street"] = billing.street
             }
             if(shipping.city){
-                if(!isValidName(billing.city))return res.status(400).send({ status: false, message: "provide valid billing city" })
-                updationfileds["address.billing.city"] = billing.city
+                if(!isValidAddress(billing.city))return res.status(400).send({ status: false, message: "provide valid billing city" })
+                obj["obj.billing.city"] = billing.city
             }
             if(shipping.pincode){
                 if(!isValidPin(billing.pincode))return res.status(400).send({ status: false, message: "provide valid billing pincode" })
-                updationfileds["address.billing.pincode"] = billing.pincode
+                obj["obj.billing.pincode"] = billing.pincode
             }
         }
 
 
-        const updateUser = await userModel.findOneAndUpdate({ _id: userId }, { $set: updationfileds }, { new: true })
+        const updateUser = await userModel.findOneAndUpdate({ _id: userId }, { $set: obj }, { new: true })
         if (!updateUser) return res.status(200).send({ status: true, message: "User not found by this userId" })
         return res.status(200).send({ status: true, message: "User updated sucessfully", data: updateUser })
     } catch (error) {
